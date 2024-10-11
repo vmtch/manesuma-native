@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Subscription } from 'expo-modules-core';
 
-// expo-notifications をインストール済みであることを確認
-// expo install expo-notifications
+// ハンドラーを設定する
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    //通知を受け取る時に音が鳴らさないようにしたいなら、
+    //shouldPlaySoundをfalseにして下さい。
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [isVisible, setIsVisible] = useState(false);
@@ -12,6 +22,9 @@ export default function App() {
   const [milliseconds, setMilliseconds] = useState(0);
   const [isNotificationSent, setIsNotificationSent] = useState(false);
   const [breakTime, setBreakTime] = useState(0);
+  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
+  const notificationListener = useRef<Subscription | null>(null);
+  const responseListener = useRef<Subscription | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -45,6 +58,30 @@ export default function App() {
       setIsNotificationSent(true);
     }
   }, [milliseconds]);
+
+  useEffect(() => {
+    // 通知を受信した際に通知内容を設定する
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    // 通知の応答をログに表示する
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    // クリーンアップ
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, []);
 
   const showPermissionRequest = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -133,6 +170,10 @@ export default function App() {
           editable={!isConcentrate}
           style={styles.input}
         />
+      </View>
+
+      <View>
+        <Text>通知内容: {notification?.request.content.title} - {notification?.request.content.body}</Text>
       </View>
     </View>
   );
