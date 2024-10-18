@@ -36,7 +36,6 @@ export default function App() {
       interval = setInterval(() => {
         const currentTime = Date.now();
         setTotalConcentrateTime(currentTime - startTime);
-        console.log("a")
       }, 100);
     } else {
       if (interval) clearInterval(interval);
@@ -46,6 +45,9 @@ export default function App() {
       if (interval) clearInterval(interval);
     };
   }, [isConcentrate]);
+  useEffect(() =>{
+    setBreakTime(totalConcentrateTime * 0.1);
+  },[totalConcentrateTime])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -178,20 +180,9 @@ export default function App() {
         <Text>
           残りスマホタイム{' '}
           {breakTime - milliseconds > 0
-            ? ((breakTime - milliseconds) / 1000).toFixed(0) + '秒'
+            ? Math.floor((breakTime - milliseconds) / 1000) + '秒'
             : 'なし'}
         </Text>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text>休憩時間 (秒): </Text>
-        <TextInput
-          keyboardType="numeric"
-          onChangeText={handleBreakTimeChange}
-          placeholder="休憩時間を入力"
-          editable={!isConcentrate}
-          style={styles.input}
-        />
       </View>
 
       {/* <View>
