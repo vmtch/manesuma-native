@@ -22,6 +22,7 @@ export default function App() {
   const [milliseconds, setMilliseconds] = useState(0);
   const [isNotificationSent, setIsNotificationSent] = useState(false);
   const [totalConcentrateTime, setTotalConcentrateTime] = useState(0);
+  const [oldTotalConcentrateTime, setOldTotalConcentrateTime] = useState(0);
   const [breakTime, setBreakTime] = useState(0);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Subscription | null>(null);
@@ -31,11 +32,12 @@ export default function App() {
     let interval: NodeJS.Timeout | null = null;
 
     if (isConcentrate) {
-      const startTime = Date.now();
+      const startTime = Date.now() - totalConcentrateTime;
 
       interval = setInterval(() => {
         const currentTime = Date.now();
-        setTotalConcentrateTime(currentTime - startTime);
+        if (!isSmartPhoneMode)
+          setTotalConcentrateTime(currentTime - startTime);
       }, 100);
     } else {
       if (interval) clearInterval(interval);
@@ -44,10 +46,15 @@ export default function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isConcentrate]);
-  useEffect(() =>{
-    setBreakTime(totalConcentrateTime * 0.1);
-  },[totalConcentrateTime])
+  }, [isConcentrate, isSmartPhoneMode]);
+
+  useEffect(() => {
+    setBreakTime(totalConcentrateTime * 0.9 - milliseconds);
+  }, [totalConcentrateTime])
+
+  useEffect(() => {
+    setOldTotalConcentrateTime(totalConcentrateTime);
+  }, [isSmartPhoneMode])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
