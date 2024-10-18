@@ -21,10 +21,31 @@ export default function App() {
   const [isConcentrate, setIsConcentrate] = useState(false);
   const [milliseconds, setMilliseconds] = useState(0);
   const [isNotificationSent, setIsNotificationSent] = useState(false);
+  const [totalConcentrateTime, setTotalConcentrateTime] = useState(0);
   const [breakTime, setBreakTime] = useState(0);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Subscription | null>(null);
   const responseListener = useRef<Subscription | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isConcentrate) {
+      const startTime = Date.now();
+
+      interval = setInterval(() => {
+        const currentTime = Date.now();
+        setTotalConcentrateTime(currentTime - startTime);
+        console.log("a")
+      }, 100);
+    } else {
+      if (interval) clearInterval(interval);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isConcentrate]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -125,6 +146,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      <Text>{totalConcentrateTime}</Text>
       {/* 通知の権限ボタン */}
       <TouchableOpacity onPress={showPermissionRequest} style={styles.bellButton}>
         <Text>通知の権限</Text>
@@ -172,9 +194,9 @@ export default function App() {
         />
       </View>
 
-      <View>
+      {/* <View>
         <Text>通知内容: {notification?.request.content.title} - {notification?.request.content.body}</Text>
-      </View>
+      </View> */}
     </View>
   );
 }
