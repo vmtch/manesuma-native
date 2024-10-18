@@ -155,7 +155,6 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text>{totalConcentrateTime}</Text>
       {/* 通知の権限ボタン */}
       <TouchableOpacity onPress={showPermissionRequest} style={styles.bellButton}>
         <Text>通知の権限</Text>
@@ -185,9 +184,15 @@ export default function App() {
 
       <View>
         <Text>
+          累計集中時間{' '}
+          {new Date(totalConcentrateTime).toISOString().slice(11, 19)}
+        </Text>
+      </View>
+      <View>
+        <Text>
           残りスマホタイム{' '}
           {breakTime - milliseconds > 0
-            ? Math.floor((breakTime - milliseconds) / 1000) + '秒'
+            ? new Date(breakTime - milliseconds).toISOString().slice(11, 19)
             : 'なし'}
         </Text>
       </View>
