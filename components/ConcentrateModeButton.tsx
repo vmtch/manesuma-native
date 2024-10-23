@@ -25,10 +25,14 @@ export default function ConcentrateModeButton({ children, isConcentrateMode, set
 
 const styles = StyleSheet.create({
     centerButton: {
+      width: 250,
+      aspectRatio: 1,
       marginBottom: 10,
       backgroundColor: '#8BC34A',
       padding: 10,
-      borderRadius: 5,
+      borderRadius: 125,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     centerButtonActive: {
       backgroundColor: '#558B2F',

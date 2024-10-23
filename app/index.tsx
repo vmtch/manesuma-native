@@ -5,6 +5,7 @@ import * as Device from 'expo-device';
 import { Subscription } from 'expo-modules-core';
 import ConcentrateModeButton from '@/components/ConcentrateModeButton';
 import SmartPhoneModeButton from '@/components/SmartPhoneModeButton';
+import styles from './indexStyles';
 
 // ハンドラーを設定する
 Notifications.setNotificationHandler({
@@ -182,38 +183,3 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  bellButton: {
-    marginBottom: 10,
-    backgroundColor: '#2196F3',
-    padding: 10,
-    borderRadius: 5,
-  },
-  smartphoneButton: {
-    marginBottom: 10,
-    backgroundColor: '#FF9800',
-    padding: 10,
-    borderRadius: 5,
-  },
-  smartphoneButtonActive: {
-    backgroundColor: '#F57C00',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 5,
-    width: 100,
-    marginLeft: 5,
-  },
-});

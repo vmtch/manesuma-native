@@ -12,11 +12,8 @@ export default function SmartPhoneModeButton({ children, isSmartPhoneMode, setIs
         setIsSmartPhoneMode(false);
     }
 
-    // 集中モードがオンのときのみスマホモードのオンオフ切り替えを行う
   const toggleSmartPhoneMode = () => {
-    if(isConcentrateMode){
-        setIsSmartPhoneMode(!isSmartPhoneMode);
-    }
+    setIsSmartPhoneMode(!isSmartPhoneMode);
   };
 
   return (
@@ -26,6 +23,7 @@ export default function SmartPhoneModeButton({ children, isSmartPhoneMode, setIs
           styles.smartphoneButton,
           isSmartPhoneMode ? styles.smartphoneButtonActive : null,
         ]}
+        disabled={!isConcentrateMode}
       >
         <Text>スマホモード: {isSmartPhoneMode ? 'オン' : 'オフ'}</Text>
     </TouchableOpacity>
