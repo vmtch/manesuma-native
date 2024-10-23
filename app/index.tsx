@@ -3,6 +3,8 @@ import { Text, View, StyleSheet, TouchableOpacity, TextInput } from 'react-nativ
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Subscription } from 'expo-modules-core';
+import ConcentrateModeButton from '@/components/ConcentrateModeButton';
+import SmartPhoneModeButton from '@/components/SmartPhoneModeButton';
 
 // ハンドラーを設定する
 Notifications.setNotificationHandler({
@@ -18,11 +20,10 @@ Notifications.setNotificationHandler({
 export default function App() {
   const [isVisible, setIsVisible] = useState(false);
   const [isSmartPhoneMode, setIsSmartPhoneMode] = useState(false);
-  const [isConcentrate, setIsConcentrate] = useState(false);
-  const [milliseconds, setMilliseconds] = useState(0);
+  const [isConcentrateMode, setIsConcentrateMode] = useState(false);
+  const [totalSmartPhoneTime, setTotalSmartPhoneTime] = useState(0);
   const [isNotificationSent, setIsNotificationSent] = useState(false);
   const [totalConcentrateTime, setTotalConcentrateTime] = useState(0);
-  const [oldTotalConcentrateTime, setOldTotalConcentrateTime] = useState(0);
   const [breakTime, setBreakTime] = useState(0);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Subscription | null>(null);
@@ -31,43 +32,35 @@ export default function App() {
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isConcentrate) {
-      const startTime = Date.now() - totalConcentrateTime;
+    if (isConcentrateMode) {
+      const startTime = Date.now();
 
       interval = setInterval(() => {
         const currentTime = Date.now();
         if (!isSmartPhoneMode)
-          setTotalConcentrateTime(currentTime - startTime);
+          setTotalConcentrateTime(currentTime - startTime + totalConcentrateTime);
       }, 100);
-    } else {
-      if (interval) clearInterval(interval);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isConcentrate, isSmartPhoneMode]);
+  }, [isConcentrateMode, isSmartPhoneMode]);
 
   useEffect(() => {
-    setBreakTime(totalConcentrateTime * 0.9 - milliseconds);
-  }, [totalConcentrateTime])
-
-  useEffect(() => {
-    setOldTotalConcentrateTime(totalConcentrateTime);
-  }, [isSmartPhoneMode])
+    setBreakTime(totalConcentrateTime * 0.9 - totalSmartPhoneTime);
+  }, [totalConcentrateTime, totalSmartPhoneTime])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
     if (isSmartPhoneMode) {
-      const startTime = Date.now() - milliseconds;
+      const startTime = Date.now();
 
       interval = setInterval(() => {
         const currentTime = Date.now();
-        setMilliseconds(currentTime - startTime);
+        setTotalSmartPhoneTime(currentTime - startTime + totalSmartPhoneTime);
       }, 100);
-    } else {
-      if (interval) clearInterval(interval);
     }
 
     return () => {
@@ -76,18 +69,21 @@ export default function App() {
   }, [isSmartPhoneMode]);
 
   useEffect(() => {
-    if (!isConcentrate) {
-      setMilliseconds(0);
+    if (!isConcentrateMode) {
+      //setTotalSmartPhoneTime(0);
       setIsNotificationSent(false);
     }
-  }, [isConcentrate]);
+  }, [isConcentrateMode]);
 
   useEffect(() => {
-    if (milliseconds > breakTime && !isNotificationSent) {
+    if (0 > breakTime && !isNotificationSent) {
       issueNotification();
       setIsNotificationSent(true);
     }
-  }, [milliseconds]);
+    else if(breakTime > 0) {
+      setIsNotificationSent(false);
+    }
+  }, [breakTime]);
 
   useEffect(() => {
     // 通知を受信した際に通知内容を設定する
@@ -135,16 +131,12 @@ export default function App() {
   };
 
   const toggleSmartPhoneMode = () => {
-    if (!isConcentrate) {
+    if (!isConcentrateMode) {
       return;
     }
     setIsSmartPhoneMode(!isSmartPhoneMode);
   };
 
-  const toggleConcentrate = () => {
-    setIsConcentrate(!isConcentrate);
-    setIsSmartPhoneMode(false);
-  };
 
   const handleBreakTimeChange = (text: string) => {
     const time = parseInt(text, 10);
@@ -161,26 +153,10 @@ export default function App() {
       </TouchableOpacity>
 
       {/* 集中モードボタン */}
-      <TouchableOpacity
-        onPress={toggleConcentrate}
-        style={[
-          styles.centerButton,
-          isConcentrate ? styles.centerButtonActive : null,
-        ]}
-      >
-        <Text>集中モード: {isConcentrate ? 'オン' : 'オフ'}</Text>
-      </TouchableOpacity>
+      <ConcentrateModeButton isConcentrateMode={isConcentrateMode} setIsConcentrateMode={setIsConcentrateMode}/>
 
       {/* スマホモードボタン */}
-      <TouchableOpacity
-        onPress={toggleSmartPhoneMode}
-        style={[
-          styles.smartphoneButton,
-          isSmartPhoneMode ? styles.smartphoneButtonActive : null,
-        ]}
-      >
-        <Text>スマホモード: {isSmartPhoneMode ? 'オン' : 'オフ'}</Text>
-      </TouchableOpacity>
+      <SmartPhoneModeButton isSmartPhoneMode={isSmartPhoneMode} setIsSmartPhoneMode={setIsSmartPhoneMode} isConcentrateMode={isConcentrateMode} />
 
       <View>
         <Text>
@@ -190,10 +166,14 @@ export default function App() {
       </View>
       <View>
         <Text>
-          残りスマホタイム{' '}
-          {breakTime - milliseconds > 0
-            ? new Date(breakTime - milliseconds).toISOString().slice(11, 19)
-            : 'なし'}
+          持ちスマホタイム{' '}
+          {breakTime >= 0 ? new Date(breakTime).toISOString().slice(11, 19) : "なし"}
+        </Text>
+      </View>
+      <View>
+        <Text>
+          累計スマホタイム{' '}
+          {new Date(totalSmartPhoneTime).toISOString().slice(11, 19)}
         </Text>
       </View>
 
@@ -216,15 +196,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
     padding: 10,
     borderRadius: 5,
-  },
-  centerButton: {
-    marginBottom: 10,
-    backgroundColor: '#8BC34A',
-    padding: 10,
-    borderRadius: 5,
-  },
-  centerButtonActive: {
-    backgroundColor: '#558B2F',
   },
   smartphoneButton: {
     marginBottom: 10,
