@@ -109,10 +109,13 @@ export default function App() {
     };
   }, []);
 
-  const showPermissionRequest = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    console.log('Notification permission status:', status);
-  };
+  
+  useEffect(() => {
+    (async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      console.log('Notification permission status:', status);
+    })();
+  }, []);
 
   const issueNotification = async () => {
     const { status } = await Notifications.getPermissionsAsync();
@@ -147,11 +150,6 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      {/* 通知の権限ボタン */}
-      <TouchableOpacity onPress={showPermissionRequest} style={styles.bellButton}>
-        <Text>通知の権限</Text>
-      </TouchableOpacity>
-
       {/* 集中モードボタン */}
       <ConcentrateModeButton isConcentrateMode={isConcentrateMode} setIsConcentrateMode={setIsConcentrateMode}/>
 
