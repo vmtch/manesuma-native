@@ -93,7 +93,7 @@ export default function App() {
   }, [isConcentrateMode, isSmartPhoneMode]);
 
   useEffect(() => {
-    setBreakTime(totalConcentrateTime * 0.9 - totalSmartPhoneTime);
+    setBreakTime(totalConcentrateTime * 0.25 - totalSmartPhoneTime);
   }, [totalConcentrateTime, totalSmartPhoneTime])
 
   useEffect(() => {
