@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, TextInput, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Subscription } from 'expo-modules-core';
@@ -19,6 +19,8 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  const appState = useRef(AppState.currentState);
+  const [appStateVisible, setAppStateVisible] = useState(appState.current);
   const [isVisible, setIsVisible] = useState(false);
   const [isSmartPhoneMode, setIsSmartPhoneMode] = useState(false);
   const [isConcentrateMode, setIsConcentrateMode] = useState(false);
@@ -29,6 +31,48 @@ export default function App() {
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Subscription | null>(null);
   const responseListener = useRef<Subscription | null>(null);
+
+  // AppState EventListener
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", _handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const _handleAppStateChange = (nextAppState : any) => {
+    // activeになったとき
+    if (
+      appState.current.match(/inactive|background/) &&
+      nextAppState === "active"
+    ) {
+      console.log("App has come to the foreground!");
+      setIsSmartPhoneMode(false);
+    }
+
+    // backgroundになったとき
+    if (
+      appState.current.match(/active|inactive/) &&
+      nextAppState === "background"
+    ) {
+      console.log("App has come to the background!");
+      setIsConcentrateMode((prevIsConcentrate) => {
+        if (prevIsConcentrate)
+        {
+          setIsSmartPhoneMode(true);
+        }
+        return prevIsConcentrate;
+      })
+    }
+    appState.current = nextAppState;
+    setAppStateVisible(appState.current);
+    console.log("AppState", appState.current);
+    setIsConcentrateMode((prevIsConcentrate) => {
+      console.log("IsConcentrate", prevIsConcentrate);
+      return prevIsConcentrate;
+    })
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -153,9 +197,6 @@ export default function App() {
     <View style={styles.container}>
       {/* 集中モードボタン */}
       <ConcentrateModeButton isConcentrateMode={isConcentrateMode} setIsConcentrateMode={setIsConcentrateMode}/>
-
-      {/* スマホモードボタン */}
-      <SmartPhoneModeButton isSmartPhoneMode={isSmartPhoneMode} setIsSmartPhoneMode={setIsSmartPhoneMode} isConcentrateMode={isConcentrateMode} />
 
       <View>
         <Text>
