@@ -4,7 +4,6 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Subscription } from 'expo-modules-core';
 import ConcentrateModeButton from '@/components/ConcentrateModeButton';
-import SmartPhoneModeButton from '@/components/SmartPhoneModeButton';
 import styles from './indexStyles';
 
 // ハンドラーを設定する
@@ -123,7 +122,7 @@ export default function App() {
   useEffect(() => {
     if (0 > breakTime && !isNotificationSent) {
       issueNotification();
-      setIsNotificationSent(true);
+      //setIsNotificationSent(true);
     }
     else if(breakTime > 0) {
       setIsNotificationSent(false);
