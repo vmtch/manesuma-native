@@ -1,30 +1,55 @@
 import { useState, useRef, useEffect } from 'react';
-import { Text, View, AppState } from "react-native";
+import { Text, View, AppState, Button } from "react-native";
 import ConcentrateModeButton from '@/components/ConcentrateModeButton';
 import * as Notifications from 'expo-notifications';
 import styles from './indexStyles';
+import Rank from './rank';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
-  const appState = useRef(AppState.currentState);
-  const [appStateVisible, setAppStateVisible] = useState(appState.current);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isSmartPhoneMode, setIsSmartPhoneMode] = useState(false);
-  const [isConcentrateMode, setIsConcentrateMode] = useState(false);
-  const [totalSmartPhoneTime, setTotalSmartPhoneTime] = useState(0);
-  const [isNotificationSent, setIsNotificationSent] = useState(false);
-  const [totalConcentrateTime, setTotalConcentrateTime] = useState(0);
-  const [breakTime, setBreakTime] = useState(0);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
+  const appState = useRef(AppState.currentState); // アプリの状態（アクティブかバックグラウンドか）
+  const [isSmartPhoneMode, setIsSmartPhoneMode] = useState(false); // スマホモード
+  const [isConcentrateMode, setIsConcentrateMode] = useState(false); // 集中モード
+  const [totalSmartPhoneTime, setTotalSmartPhoneTime] = useState(0); // 累計スマホタイム
+  const [allowedSmartPhoneTime, setAllowedSmartPhoneTime] = useState(0); // 持ちスマホタイム　増減する
+  const [totalConcentrateTime, setTotalConcentrateTime] = useState(0); // 累計集中時間
+  const [isNotificationSent, setIsNotificationSent] = useState(false); // 通知の無限発行防止フラグ
 
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  });
+  // データ保存のヘルパ
+  async function storeData(key: string, value: string) {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch(err) {
+      console.error(err);
+    }
+  }
 
-  // AppState EventListener
+  // データ取得のヘルパ
+  async function getData(key: string) {
+    try {
+      const value = await AsyncStorage.getItem(key);
+      return value;
+    } catch(err){
+      console.error(err);
+    }
+  }
+
+  // 累計集中時間の引き継ぎ
+  useEffect(() => {
+    (async () => {
+      const t = await getData('totalConcentrateTime');
+      setTotalConcentrateTime(Number(t || 0));
+    })();
+  }, []);
+
+  // 累計集中時間の保存
+  useEffect(() => {
+    (async () => {
+      await storeData('totalConcentrateTime', String(totalConcentrateTime));
+    })();
+  }, [totalConcentrateTime])
+
+  // アプリがアクティブかバックグラウンドかによってスマホモードを切り替え
   useEffect(() => {
     const subscription = AppState.addEventListener("change", _handleAppStateChange);
 
@@ -32,7 +57,6 @@ export default function App() {
       subscription.remove();
     };
   }, []);
-
   const _handleAppStateChange = (nextAppState : any) => {
     // activeになったとき
     if (
@@ -49,6 +73,7 @@ export default function App() {
       nextAppState === "background"
     ) {
       console.log("App has come to the background!");
+      // 集中モードがオンならスマホモードをオンにする
       setIsConcentrateMode((prevIsConcentrate) => {
         if (prevIsConcentrate)
         {
@@ -58,24 +83,22 @@ export default function App() {
       })
     }
     appState.current = nextAppState;
-    setAppStateVisible(appState.current);
     console.log("AppState", appState.current);
     setIsConcentrateMode((prevIsConcentrate) => {
-      console.log("IsConcentrate", prevIsConcentrate);
       return prevIsConcentrate;
     })
   };
 
+  // 累計集中時間の加算
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isConcentrateMode) {
+    if (isConcentrateMode && !isSmartPhoneMode) {
       const startTime = Date.now();
 
       interval = setInterval(() => {
         const currentTime = Date.now();
-        if (!isSmartPhoneMode)
-          setTotalConcentrateTime(currentTime - startTime + totalConcentrateTime);
+        setTotalConcentrateTime(currentTime - startTime + totalConcentrateTime);
       }, 100);
     }
 
@@ -84,10 +107,12 @@ export default function App() {
     };
   }, [isConcentrateMode, isSmartPhoneMode]);
 
+  // 持ちスマホタイムを計算
   useEffect(() => {
-    setBreakTime(totalConcentrateTime * 0.25 - totalSmartPhoneTime);
+    setAllowedSmartPhoneTime(totalConcentrateTime * 0.25 - totalSmartPhoneTime);
   }, [totalConcentrateTime, totalSmartPhoneTime])
 
+  // 累計スマホタイムの加算
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -105,6 +130,7 @@ export default function App() {
     };
   }, [isSmartPhoneMode]);
 
+  // 集中モードの切り替え時の処理
   useEffect(() => {
     if (!isConcentrateMode) {
       //setTotalSmartPhoneTime(0);
@@ -112,27 +138,39 @@ export default function App() {
     }
   }, [isConcentrateMode]);
 
+  // スマホ使いすぎ通知の発行管理
   useEffect(() => {
-    if (0 > breakTime && !isNotificationSent) {
+    if (0 > allowedSmartPhoneTime && !isNotificationSent) {
       issueNotification();
-      //setIsNotificationSent(true);
+      setIsNotificationSent(true); // コメントアウトすると持ちスマホタイムが負の限り無限に通知が来る
     }
-    else if(breakTime > 0) {
+    else if(allowedSmartPhoneTime > 0) {
       setIsNotificationSent(false);
     }
-  }, [breakTime]);
+  }, [allowedSmartPhoneTime]);
   
+  // 通知の設定
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+  
+  // 通知の権限の取得
   useEffect(() => {
     (async () => {
       const { status } = await Notifications.requestPermissionsAsync();
-      console.log('Notification permission status:', status);
+      //console.log('Notification permission status:', status);
     })();
   }, []);
 
+  // 通知の発行を行う関数
   const issueNotification = async () => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
-      console.log('通知の許可がありません');
+      //console.log('通知の許可がありません');
       return;
     }
 
@@ -143,21 +181,6 @@ export default function App() {
       },
       trigger: null, // 即時通知
     });
-  };
-
-  const toggleSmartPhoneMode = () => {
-    if (!isConcentrateMode) {
-      return;
-    }
-    setIsSmartPhoneMode(!isSmartPhoneMode);
-  };
-
-
-  const handleBreakTimeChange = (text: string) => {
-    const time = parseInt(text, 10);
-    if (!isNaN(time)) {
-      setBreakTime(time * 1000); // 秒をミリ秒に変換
-    }
   };
 
   return (
@@ -174,7 +197,7 @@ export default function App() {
       <View>
         <Text>
           持ちスマホタイム{' '}
-          {breakTime >= 0 ? new Date(breakTime).toISOString().slice(11, 19) : "なし"}
+          {allowedSmartPhoneTime >= 0 ? new Date(allowedSmartPhoneTime).toISOString().slice(11, 19) : "なし"}
         </Text>
       </View>
       <View>
@@ -183,10 +206,8 @@ export default function App() {
           {new Date(totalSmartPhoneTime).toISOString().slice(11, 19)}
         </Text>
       </View>
-
-      {/* <View>
-        <Text>通知内容: {notification?.request.content.title} - {notification?.request.content.body}</Text>
-      </View> */}
+      <Rank time={totalConcentrateTime}/>
+      <Button title={'reset'} onPress={() => {setTotalConcentrateTime(0)}}></Button>
     </View>
   );
 }

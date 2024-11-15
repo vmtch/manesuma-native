@@ -28,14 +28,14 @@ const styles = StyleSheet.create({
       width: 250,
       aspectRatio: 1,
       marginBottom: 10,
-      backgroundColor: '#8BC34A',
+      backgroundColor: '#B9E5E8',
       padding: 10,
       borderRadius: 125,
       justifyContent: 'center',
       alignItems: 'center',
     },
     centerButtonActive: {
-      backgroundColor: '#558B2F',
+      backgroundColor: '#7AB2D3',
     }
   });
   
